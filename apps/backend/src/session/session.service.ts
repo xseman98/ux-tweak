@@ -8,4 +8,8 @@ export class SessionService {
   createSession(nickname: string) {
     return this.prisma.userSession.create({ data: { nickname } })
   }
+
+  resumeSession(sessionId: string) {
+    return this.prisma.userSession.findUnique({ where: { id: sessionId } })
+  }
 }

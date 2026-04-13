@@ -1,1 +1,45 @@
 /* app global css */
+
+body {
+  background: #f5f6fa;
+}
+
+.chat-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.join-card,
+.chat-window {
+  background: #fff;
+}
+
+.chat-messages {
+  min-height: 360px;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.connection-status {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.connection-status--connected {
+  color: #2e7d32;
+}
+
+.connection-status--connecting {
+  color: #ef6c00;
+}
+
+.connection-status--disconnected {
+  color: #c62828;
+}
+
+.message-meta {
+  font-size: 11px;
+  color: #6b7280;
+  margin-bottom: 2px;
+}

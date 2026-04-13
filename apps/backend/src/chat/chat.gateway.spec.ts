@@ -5,14 +5,14 @@ import { MessagesService } from '../messages/messages.service'
 
 describe('ChatGateway', () => {
   let gateway: ChatGateway
-  let sessionService: { createSession: jest.Mock }
-  let messagesService: { createMessage: jest.Mock }
+  let sessionService: { createSession: jest.Mock; resumeSession: jest.Mock }
+  let messagesService: { createMessage: jest.Mock; getRecentMessages: jest.Mock }
   let mockServer: { emit: jest.Mock }
   let mockClient: { emit: jest.Mock }
 
   beforeEach(async () => {
-    sessionService = { createSession: jest.fn() }
-    messagesService = { createMessage: jest.fn() }
+    sessionService = { createSession: jest.fn(), resumeSession: jest.fn() }
+    messagesService = { createMessage: jest.fn(), getRecentMessages: jest.fn() }
     mockServer = { emit: jest.fn() }
     mockClient = { emit: jest.fn() }
 
@@ -31,12 +31,17 @@ describe('ChatGateway', () => {
   describe('handleJoin', () => {
     it('returns sessionId for valid nickname', async () => {
       sessionService.createSession.mockResolvedValue({ id: 'sess1', nickname: 'Alice', createdAt: new Date() })
+      messagesService.getRecentMessages.mockResolvedValue([])
 
       const result = await gateway.handleJoin({ nickname: 'Alice' }, mockClient as any)
 
       expect(sessionService.createSession).toHaveBeenCalledWith('Alice')
-      expect(result).toEqual({ sessionId: 'sess1' })
-      expect(mockClient.emit).not.toHaveBeenCalled()
+      expect(result).toEqual({ sessionId: 'sess1', messages: [] })
+      expect(mockClient.emit).toHaveBeenCalledWith('session:joined', {
+        sessionId: 'sess1',
+        nickname: 'Alice',
+        messages: [],
+      })
     })
 
     it('emits error for empty nickname', async () => {
@@ -61,10 +66,23 @@ describe('ChatGateway', () => {
     })
   })
 
+  describe('handleResume', () => {
+    it('returns session data for valid session', async () => {
+      const createdAt = new Date()
+      sessionService.resumeSession.mockResolvedValue({ id: 'sess1', nickname: 'Alice', createdAt })
+      messagesService.getRecentMessages.mockResolvedValue([])
+
+      const result = await gateway.handleResume({ sessionId: 'sess1' }, mockClient as any)
+
+      expect(sessionService.resumeSession).toHaveBeenCalledWith('sess1')
+      expect(result).toEqual({ sessionId: 'sess1', nickname: 'Alice', messages: [] })
+    })
+  })
+
   describe('handleMessage', () => {
     it('persists message and broadcasts message:new', async () => {
       const createdAt = new Date()
-      const mockMessage = { id: 'msg1', sessionId: 'sess1', content: 'hello', createdAt }
+      const mockMessage = { id: 'msg1', sessionId: 'sess1', content: 'hello', createdAt, session: { nickname: 'Alice' } }
       messagesService.createMessage.mockResolvedValue(mockMessage)
 
       await gateway.handleMessage({ sessionId: 'sess1', content: 'hello' }, mockClient as any)
@@ -75,6 +93,7 @@ describe('ChatGateway', () => {
         sessionId: 'sess1',
         content: 'hello',
         createdAt,
+        nickname: 'Alice',
       })
       expect(mockClient.emit).not.toHaveBeenCalled()
     })

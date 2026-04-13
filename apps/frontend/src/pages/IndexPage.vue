@@ -1,43 +1,80 @@
 <template>
-  <q-page class="row items-center justify-evenly">
-    <example-component
-      title="Example component"
-      active
-      :todos="todos"
-      :meta="meta"
-    ></example-component>
+  <q-page class="chat-page">
+    <JoinForm v-if="!sessionStore.state.isJoined && !isRestoring" :loading="isJoining" @submit="handleJoin" />
+    <q-card v-else-if="isRestoring" flat bordered class="join-card">
+      <q-card-section class="text-caption text-grey-7">Restoring session...</q-card-section>
+    </q-card>
+
+    <ChatWindow
+      v-else
+      :status="connectionStore.state.status"
+      :messages="chatStore.state.messages"
+      :disabled="connectionStore.state.status !== 'connected'"
+      :history-loading="isHistoryLoading"
+      @send="handleSend"
+    />
+
+    <q-banner v-if="connectionStore.state.error" dense inline-actions class="bg-red-1 text-negative q-mt-md">
+      {{ connectionStore.state.error }}
+    </q-banner>
   </q-page>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import type { Todo, Meta } from 'components/models';
-import ExampleComponent from 'components/ExampleComponent.vue';
+import { onMounted, ref } from 'vue'
+import ChatWindow from '../components/ChatWindow.vue'
+import JoinForm from '../components/JoinForm.vue'
+import { joinSession, resumeSession, sendMessage } from '../chat/socket'
+import { chatStore } from '../stores/chatStore'
+import { connectionStore } from '../stores/connectionStore'
+import { sessionStore } from '../stores/sessionStore'
 
-const todos = ref<Todo[]>([
-  {
-    id: 1,
-    content: 'ct1'
-  },
-  {
-    id: 2,
-    content: 'ct2'
-  },
-  {
-    id: 3,
-    content: 'ct3'
-  },
-  {
-    id: 4,
-    content: 'ct4'
-  },
-  {
-    id: 5,
-    content: 'ct5'
+const isJoining = ref(false)
+const isRestoring = ref(true)
+const isHistoryLoading = ref(false)
+
+async function handleJoin(nickname: string) {
+  isJoining.value = true
+  isHistoryLoading.value = true
+  connectionStore.clearError()
+
+  try {
+    await joinSession(nickname)
+  } catch (error) {
+    connectionStore.setError(error instanceof Error ? error.message : 'Join failed')
+    chatStore.clear()
+  } finally {
+    isJoining.value = false
+    isHistoryLoading.value = false
   }
-]);
+}
 
-const meta = ref<Meta>({
-  totalCount: 1200
-});
+async function handleSend(content: string) {
+  try {
+    await sendMessage(content)
+  } catch (error) {
+    connectionStore.setError(error instanceof Error ? error.message : 'Send failed')
+  }
+}
+
+onMounted(async () => {
+  const session = sessionStore.hydrateFromStorage()
+  if (!session) {
+    isRestoring.value = false
+    return
+  }
+
+  isHistoryLoading.value = true
+  connectionStore.clearError()
+
+  try {
+    await resumeSession(session.sessionId)
+  } catch {
+    sessionStore.clear()
+    chatStore.clear()
+  } finally {
+    isHistoryLoading.value = false
+    isRestoring.value = false
+  }
+})
 </script>

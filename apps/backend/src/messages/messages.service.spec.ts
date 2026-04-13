@@ -4,10 +4,10 @@ import { PrismaService } from '../prisma/prisma.service'
 
 describe('MessagesService', () => {
   let service: MessagesService
-  let prisma: { message: { create: jest.Mock } }
+  let prisma: { message: { create: jest.Mock; findMany: jest.Mock } }
 
   beforeEach(async () => {
-    prisma = { message: { create: jest.fn() } }
+    prisma = { message: { create: jest.fn(), findMany: jest.fn() } }
     const module = await Test.createTestingModule({
       providers: [
         MessagesService,
@@ -22,12 +22,51 @@ describe('MessagesService', () => {
   })
 
   it('creates a message with given sessionId and content', async () => {
-    const mockMessage = { id: 'msg1', sessionId: 'sess1', content: 'hello', createdAt: new Date() }
+    const mockMessage = {
+      id: 'msg1',
+      sessionId: 'sess1',
+      content: 'hello',
+      createdAt: new Date(),
+      session: { nickname: 'Alice' },
+    }
     prisma.message.create.mockResolvedValue(mockMessage)
 
     const result = await service.createMessage('sess1', 'hello')
 
-    expect(prisma.message.create).toHaveBeenCalledWith({ data: { sessionId: 'sess1', content: 'hello' } })
+    expect(prisma.message.create).toHaveBeenCalledWith({
+      data: { sessionId: 'sess1', content: 'hello' },
+      include: { session: { select: { nickname: true } } },
+    })
     expect(result).toEqual(mockMessage)
+  })
+
+  it('returns recent messages sorted ascending by time', async () => {
+    const first = {
+      id: 'msg1',
+      sessionId: 'sess1',
+      content: 'first',
+      createdAt: new Date('2024-01-01'),
+      session: { nickname: 'Alice' },
+    }
+    const second = {
+      id: 'msg2',
+      sessionId: 'sess1',
+      content: 'second',
+      createdAt: new Date('2024-01-02'),
+      session: { nickname: 'Bob' },
+    }
+    prisma.message.findMany.mockResolvedValue([second, first])
+
+    const result = await service.getRecentMessages(2)
+
+    expect(prisma.message.findMany).toHaveBeenCalledWith({
+      take: 2,
+      orderBy: { createdAt: 'desc' },
+      include: { session: { select: { nickname: true } } },
+    })
+    expect(result).toEqual([
+      { id: 'msg1', sessionId: 'sess1', content: 'first', createdAt: new Date('2024-01-01'), nickname: 'Alice' },
+      { id: 'msg2', sessionId: 'sess1', content: 'second', createdAt: new Date('2024-01-02'), nickname: 'Bob' },
+    ])
   })
 })

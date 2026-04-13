@@ -24,7 +24,38 @@ export class ChatGateway {
       return
     }
     const session = await this.sessionService.createSession(data.nickname.trim())
-    return { sessionId: session.id }
+    const recentMessages = await this.messagesService.getRecentMessages()
+
+    client.emit('session:joined', {
+      sessionId: session.id,
+      nickname: session.nickname,
+      messages: recentMessages,
+    })
+
+    return { sessionId: session.id, messages: recentMessages }
+  }
+
+  @SubscribeMessage('session:resume')
+  async handleResume(@MessageBody() data: { sessionId: string }, @ConnectedSocket() client: Socket) {
+    if (!data.sessionId) {
+      client.emit('error', { message: 'Session is required' })
+      return
+    }
+
+    const session = await this.sessionService.resumeSession(data.sessionId)
+    if (!session) {
+      client.emit('error', { message: 'Session is not valid' })
+      return
+    }
+
+    const recentMessages = await this.messagesService.getRecentMessages()
+    client.emit('session:resumed', {
+      sessionId: session.id,
+      nickname: session.nickname,
+      messages: recentMessages,
+    })
+
+    return { sessionId: session.id, nickname: session.nickname, messages: recentMessages }
   }
 
   @SubscribeMessage('message:send')
@@ -43,6 +74,7 @@ export class ChatGateway {
       sessionId: message.sessionId,
       content: message.content,
       createdAt: message.createdAt,
+      nickname: message.session.nickname,
     })
   }
 }
