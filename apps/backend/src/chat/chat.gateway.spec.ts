@@ -6,13 +6,13 @@ import { MessagesService } from '../messages/messages.service'
 describe('ChatGateway', () => {
   let gateway: ChatGateway
   let sessionService: { createSession: jest.Mock; resumeSession: jest.Mock }
-  let messagesService: { createMessage: jest.Mock; getRecentMessages: jest.Mock }
+  let messagesService: { createMessage: jest.Mock; getRecentMessages: jest.Mock; getMessagesAfter: jest.Mock }
   let mockServer: { emit: jest.Mock }
   let mockClient: { emit: jest.Mock }
 
   beforeEach(async () => {
     sessionService = { createSession: jest.fn(), resumeSession: jest.fn() }
-    messagesService = { createMessage: jest.fn(), getRecentMessages: jest.fn() }
+    messagesService = { createMessage: jest.fn(), getRecentMessages: jest.fn(), getMessagesAfter: jest.fn() }
     mockServer = { emit: jest.fn() }
     mockClient = { emit: jest.fn() }
 
@@ -47,21 +47,30 @@ describe('ChatGateway', () => {
     it('emits error for empty nickname', async () => {
       await gateway.handleJoin({ nickname: '' }, mockClient as any)
 
-      expect(mockClient.emit).toHaveBeenCalledWith('error', { message: 'Nickname is required' })
+      expect(mockClient.emit).toHaveBeenCalledWith('error', {
+        message: 'Nickname is required',
+        code: 'NICKNAME_REQUIRED',
+      })
       expect(sessionService.createSession).not.toHaveBeenCalled()
     })
 
     it('emits error for whitespace nickname', async () => {
       await gateway.handleJoin({ nickname: '   ' }, mockClient as any)
 
-      expect(mockClient.emit).toHaveBeenCalledWith('error', { message: 'Nickname is required' })
+      expect(mockClient.emit).toHaveBeenCalledWith('error', {
+        message: 'Nickname is required',
+        code: 'NICKNAME_REQUIRED',
+      })
       expect(sessionService.createSession).not.toHaveBeenCalled()
     })
 
     it('emits error for nickname over 50 chars', async () => {
       await gateway.handleJoin({ nickname: 'a'.repeat(51) }, mockClient as any)
 
-      expect(mockClient.emit).toHaveBeenCalledWith('error', { message: 'Nickname must be 50 characters or less' })
+      expect(mockClient.emit).toHaveBeenCalledWith('error', {
+        message: 'Nickname must be 50 characters or less',
+        code: 'NICKNAME_TOO_LONG',
+      })
       expect(sessionService.createSession).not.toHaveBeenCalled()
     })
   })
@@ -101,22 +110,50 @@ describe('ChatGateway', () => {
     it('emits error for empty content', async () => {
       await gateway.handleMessage({ sessionId: 'sess1', content: '' }, mockClient as any)
 
-      expect(mockClient.emit).toHaveBeenCalledWith('error', { message: 'Message content is required' })
+      expect(mockClient.emit).toHaveBeenCalledWith('error', {
+        message: 'Message content is required',
+        code: 'MESSAGE_REQUIRED',
+      })
       expect(messagesService.createMessage).not.toHaveBeenCalled()
     })
 
     it('emits error for whitespace content', async () => {
       await gateway.handleMessage({ sessionId: 'sess1', content: '   ' }, mockClient as any)
 
-      expect(mockClient.emit).toHaveBeenCalledWith('error', { message: 'Message content is required' })
+      expect(mockClient.emit).toHaveBeenCalledWith('error', {
+        message: 'Message content is required',
+        code: 'MESSAGE_REQUIRED',
+      })
       expect(messagesService.createMessage).not.toHaveBeenCalled()
     })
 
     it('emits error for content over 500 chars', async () => {
       await gateway.handleMessage({ sessionId: 'sess1', content: 'a'.repeat(501) }, mockClient as any)
 
-      expect(mockClient.emit).toHaveBeenCalledWith('error', { message: 'Message must be 500 characters or less' })
+      expect(mockClient.emit).toHaveBeenCalledWith('error', {
+        message: 'Message must be 500 characters or less',
+        code: 'MESSAGE_TOO_LONG',
+      })
       expect(messagesService.createMessage).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('handleSync', () => {
+    it('returns messages after afterMessageId', async () => {
+      const createdAt = new Date()
+      messagesService.getMessagesAfter.mockResolvedValue([
+        { id: 'msg2', sessionId: 'sess1', content: 'new', createdAt, nickname: 'Alice' },
+      ])
+
+      const result = await gateway.handleSync({ afterMessageId: 'msg1' }, mockClient as any)
+
+      expect(messagesService.getMessagesAfter).toHaveBeenCalledWith('msg1')
+      expect(result).toEqual({
+        messages: [{ id: 'msg2', sessionId: 'sess1', content: 'new', createdAt, nickname: 'Alice' }],
+      })
+      expect(mockClient.emit).toHaveBeenCalledWith('messages:synced', {
+        messages: [{ id: 'msg2', sessionId: 'sess1', content: 'new', createdAt, nickname: 'Alice' }],
+      })
     })
   })
 })

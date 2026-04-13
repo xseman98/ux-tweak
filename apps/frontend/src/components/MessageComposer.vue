@@ -8,6 +8,7 @@
         label="Write message"
         maxlength="500"
         :disable="disabled"
+        :hint="disabledReason"
       />
     </div>
     <div class="col-auto">
@@ -21,6 +22,7 @@ import { computed, ref } from 'vue'
 
 defineProps<{
   disabled: boolean
+  disabledReason: string
 }>()
 
 const emit = defineEmits<{

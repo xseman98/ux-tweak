@@ -19,6 +19,12 @@ const label = computed(() => {
   if (props.status === 'connecting') {
     return 'Connecting...'
   }
+  if (props.status === 'reconnecting') {
+    return 'Reconnecting...'
+  }
+  if (props.status === 'syncing') {
+    return 'Syncing messages...'
+  }
   return 'Disconnected'
 })
 </script>

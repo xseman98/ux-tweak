@@ -1,4 +1,9 @@
-export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected'
+export type ConnectionStatus = 'disconnected' | 'connecting' | 'reconnecting' | 'syncing' | 'connected'
+
+export interface SocketErrorPayload {
+  message: string
+  code?: string
+}
 
 export interface ChatMessage {
   id: string
