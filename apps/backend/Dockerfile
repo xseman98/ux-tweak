@@ -5,6 +5,7 @@ COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/backend/package.json ./apps/backend/
 RUN pnpm install --frozen-lockfile --filter backend
 COPY apps/backend/ ./apps/backend/
+RUN apps/backend/node_modules/.bin/prisma generate --schema=apps/backend/prisma/schema.prisma
 RUN pnpm --filter backend build
 
 FROM node:20-alpine
