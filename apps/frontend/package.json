@@ -1,0 +1,32 @@
+{
+  "name": "frontend",
+  "version": "0.0.1",
+  "description": "A Quasar Project",
+  "productName": "UXTweak Chat",
+  "author": "Kristian Seman",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "echo \"No test specified\" && exit 0",
+    "dev": "quasar dev",
+    "build": "quasar build",
+    "postinstall": "quasar prepare"
+  },
+  "dependencies": {
+    "@quasar/extras": "^1.16.4",
+    "quasar": "^2.16.0",
+    "vue": "^3.5.22",
+    "vue-router": "^5.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.11",
+    "@quasar/app-vite": "^2.5.1",
+    "autoprefixer": "^10.4.27",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20",
+    "npm": ">= 6.13.4",
+    "yarn": ">= 1.21.1"
+  }
+}

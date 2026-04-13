@@ -1,0 +1,9 @@
+packages:
+  - 'apps/*'
+
+# pnpm 10 requires native-build deps to be explicitly listed here
+onlyBuiltDependencies:
+  - '@nestjs/core'
+  - '@parcel/watcher'
+  - esbuild
+  - unrs-resolver
