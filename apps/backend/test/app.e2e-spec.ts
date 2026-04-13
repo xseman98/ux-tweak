@@ -2,6 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { INestApplication } from '@nestjs/common'
 import request from 'supertest'
 import { AppModule } from './../src/app.module'
+import { PrismaService } from './../src/prisma/prisma.service'
+
+process.env.DATABASE_URL = process.env.DATABASE_URL ?? 'postgresql://test:test@localhost:5432/test'
 
 describe('Health (e2e)', () => {
   let app: INestApplication
@@ -9,7 +12,10 @@ describe('Health (e2e)', () => {
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile()
+    })
+      .overrideProvider(PrismaService)
+      .useValue({ onModuleInit: jest.fn(), onModuleDestroy: jest.fn() })
+      .compile()
 
     app = moduleFixture.createNestApplication()
     await app.init()
@@ -20,6 +26,9 @@ describe('Health (e2e)', () => {
   })
 
   it('/health (GET)', () => {
-    return request(app.getHttpServer()).get('/health').expect(200).expect({ status: 'ok' })
+    return request(app.getHttpServer())
+      .get('/health')
+      .expect(200)
+      .expect({ status: 'ok' })
   })
 })
