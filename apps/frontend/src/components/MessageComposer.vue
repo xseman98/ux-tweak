@@ -1,18 +1,27 @@
 <template>
-  <q-form @submit.prevent="submit" class="row q-col-gutter-sm items-center">
+  <q-form @submit.prevent="submit" class="row q-col-gutter-sm items-start">
     <div class="col">
       <q-input
         v-model="value"
         outlined
         dense
         label="Write message"
+        aria-label="Write a message"
         maxlength="500"
         :disable="disabled"
         :hint="disabledReason"
+        :aria-disabled="disabled"
       />
     </div>
     <div class="col-auto">
-      <q-btn type="submit" color="primary" label="Send" :disable="disabled || !canSubmit" />
+      <q-btn
+        type="submit"
+        color="primary"
+        label="Send"
+        aria-label="Send message"
+        :disable="disabled || !canSubmit"
+        :aria-disabled="disabled || !canSubmit"
+      />
     </div>
   </q-form>
 </template>
@@ -35,9 +44,7 @@ const canSubmit = computed(() => value.value.trim().length > 0)
 
 function submit() {
   const content = value.value.trim()
-  if (!content) {
-    return
-  }
+  if (!content) return
 
   emit('submit', content)
   value.value = ''

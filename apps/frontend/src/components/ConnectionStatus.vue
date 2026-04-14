@@ -1,6 +1,12 @@
 <template>
-  <div class="connection-status" :class="`connection-status--${status}`">
-    {{ label }}
+  <div
+    class="row items-center no-wrap q-gutter-xs"
+    role="status"
+    aria-live="polite"
+    :aria-label="`Connection status: ${label}`"
+  >
+    <span class="status-dot" :class="`status-dot--${status}`" aria-hidden="true" />
+    <span class="text-caption text-grey-7">{{ label }}</span>
   </div>
 </template>
 
@@ -13,18 +19,13 @@ const props = defineProps<{
 }>()
 
 const label = computed(() => {
-  if (props.status === 'connected') {
-    return 'Connected'
+  const labels: Record<ConnectionStatus, string> = {
+    connected: 'Connected',
+    connecting: 'Connecting...',
+    reconnecting: 'Reconnecting...',
+    syncing: 'Syncing...',
+    disconnected: 'Disconnected',
   }
-  if (props.status === 'connecting') {
-    return 'Connecting...'
-  }
-  if (props.status === 'reconnecting') {
-    return 'Reconnecting...'
-  }
-  if (props.status === 'syncing') {
-    return 'Syncing messages...'
-  }
-  return 'Disconnected'
+  return labels[props.status]
 })
 </script>

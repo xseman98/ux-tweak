@@ -1,9 +1,32 @@
 <template>
-  <q-page class="chat-page">
-    <JoinForm v-if="!sessionStore.state.isJoined && !isRestoring" :loading="isJoining" @submit="handleJoin" />
-    <q-card v-else-if="isRestoring" flat bordered class="join-card">
-      <q-card-section class="text-caption text-grey-7">Restoring session...</q-card-section>
+  <q-page :class="showChat ? '' : 'chat-page'" :style-fn="showChat ? chatPageStyle : undefined">
+    <q-banner
+      v-if="connectionStore.state.error"
+      role="alert"
+      dense
+      inline-actions
+      class="bg-red-1 text-negative"
+    >
+      {{ connectionStore.state.error }}
+      <template #action>
+        <q-btn
+          flat dense round
+          icon="close"
+          size="sm"
+          aria-label="Dismiss error"
+          @click="connectionStore.clearError()"
+        />
+      </template>
+    </q-banner>
+
+    <q-card v-if="isRestoring" flat bordered class="join-card">
+      <q-card-section class="row items-center q-gutter-sm" aria-label="Restoring session" aria-busy="true">
+        <q-spinner color="primary" size="1.2rem" aria-hidden="true" />
+        <span class="text-caption text-grey-7">Restoring session...</span>
+      </q-card-section>
     </q-card>
+
+    <JoinForm v-else-if="!sessionStore.state.isJoined" :loading="isJoining" @submit="handleJoin" />
 
     <ChatWindow
       v-else
@@ -15,10 +38,6 @@
       :history-loading="isHistoryLoading"
       @send="handleSend"
     />
-
-    <q-banner v-if="connectionStore.state.error" dense inline-actions class="bg-red-1 text-negative q-mt-md">
-      {{ connectionStore.state.error }}
-    </q-banner>
   </q-page>
 </template>
 
@@ -35,11 +54,15 @@ const isJoining = ref(false)
 const isRestoring = ref(true)
 const isHistoryLoading = ref(false)
 
+const showChat = computed(() => sessionStore.state.isJoined && !isRestoring.value)
+
+function chatPageStyle(offset: number) {
+  return { height: `calc(100vh - ${offset}px)`, display: 'flex', flexDirection: 'column' }
+}
+
 const composerDisabled = computed(() => connectionStore.state.status !== 'connected')
 const composerDisabledReason = computed(() => {
-  if (connectionStore.state.status === 'syncing') {
-    return 'Syncing missed messages...'
-  }
+  if (connectionStore.state.status === 'syncing') return 'Syncing missed messages...'
   if (connectionStore.state.status === 'reconnecting' || connectionStore.state.status === 'disconnected') {
     return 'Offline. Message sending is temporarily disabled.'
   }
